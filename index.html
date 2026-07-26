@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>REMATCH — 다시 쓰는 2026, 이번엔 네가 감독이다</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+:root{
+  --pitch:#1D9E75; --pitch-dark:#17845F; --line:rgba(255,255,255,.75);
+  --navy:#0C2340; --ink:#1a1d21; --sub:#5f6570; --muted:#9aa0a8;
+  --bg:#f4f5f2; --card:#ffffff; --border:#e3e5e0; --border-strong:#c9ccc5;
+  --kor:#2f7fd4; --kor-deep:#0C447C; --opp:#e06a44; --opp-deep:#712B13;
+  --gold:#f0b429; --danger:#c93b3b; --success:#2c8a5b;
+  --radius:10px;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+body{font-family:'Pretendard',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+  background:var(--bg); color:var(--ink); font-size:15px; line-height:1.6;}
+button{font-family:inherit; cursor:pointer; border:1px solid var(--border-strong);
+  background:#fff; color:var(--ink); border-radius:8px; padding:7px 14px; font-size:13px;}
+button:hover{background:#f0f1ee;}
+button:active{transform:scale(.98);}
+button.primary{background:var(--navy); color:#fff; border-color:var(--navy);}
+button.primary:hover{background:#1a3a63;}
+button:disabled{opacity:.4; cursor:not-allowed;}
+.screen{display:none; max-width:1080px; margin:0 auto; padding:24px 20px 60px;}
+.screen.active{display:block;}
+.tag{display:inline-block; font-size:11px; font-weight:600; letter-spacing:.08em;
+  padding:3px 10px; border-radius:999px;}
+
+/* ---------- intro ---------- */
+#scr-intro{max-width:860px;}
+.hero{padding:56px 0 36px; text-align:center;}
+.hero .kicker{font-size:13px; font-weight:600; letter-spacing:.28em; color:var(--opp);}
+.hero h1{font-size:clamp(44px,8vw,72px); font-weight:800; letter-spacing:-.02em;
+  line-height:1.05; margin:10px 0 14px; color:var(--navy);}
+.hero h1 .accent{color:var(--pitch);}
+.hero p{color:var(--sub); font-size:16px; max-width:520px; margin:0 auto;}
+.scenario-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:16px; margin-top:28px;}
+.scenario{background:var(--card); border:1px solid var(--border); border-radius:14px;
+  padding:22px; text-align:left; cursor:pointer; transition:border-color .15s, transform .15s;}
+.scenario:hover{border-color:var(--navy); transform:translateY(-2px);}
+.scenario .vs{font-size:20px; font-weight:700; margin:10px 0 4px;}
+.scenario .desc{font-size:13.5px; color:var(--sub); margin-bottom:14px;}
+.scenario .meta{display:flex; gap:8px; flex-wrap:wrap;}
+.scenario .meta span{font-size:12px; background:#f0f1ee; border-radius:6px; padding:3px 9px; color:var(--sub);}
+
+/* ---------- locker ---------- */
+.topbar{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:18px;}
+.topbar h2{font-size:20px; font-weight:700; color:var(--navy);}
+.topbar .sub{font-size:13px; color:var(--sub);}
+.locker-grid{display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); gap:18px;}
+@media(max-width:820px){.locker-grid{grid-template-columns:1fr;}}
+.panel{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px;}
+.panel h3{font-size:13px; font-weight:600; color:var(--sub); margin-bottom:10px; letter-spacing:.02em;}
+.form-btns{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;}
+.form-btns button.on{background:var(--navy); color:#fff; border-color:var(--navy);}
+.pitch-wrap{position:relative; border-radius:12px; overflow:hidden; user-select:none;
+  background:
+    repeating-linear-gradient(to bottom, var(--pitch) 0 12.5%, var(--pitch-dark) 12.5% 25%);
+  aspect-ratio:34/44; touch-action:none;}
+.pitch-lines{position:absolute; inset:0; width:100%; height:100%; pointer-events:none;}
+.dot{position:absolute; width:44px; height:52px; margin:-26px 0 0 -22px;
+  display:flex; flex-direction:column; align-items:center; gap:2px; cursor:grab;
+  transition:left .5s ease, top .5s ease;}
+.dot.dragging{transition:none; z-index:30; cursor:grabbing;}
+.dot .chip{width:32px; height:32px; border-radius:50%; background:#eaf2fc; border:2px solid #fff;
+  display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; color:var(--kor-deep);
+  box-shadow:0 1px 4px rgba(0,0,0,.25);}
+.dot.gk{flex-direction:column-reverse;}
+.dot.gk .chip{background:var(--gold); color:#412402;}
+.dot .nm{font-size:10px; font-weight:600; color:#fff; background:rgba(12,35,64,.55);
+  padding:1px 6px; border-radius:6px; white-space:nowrap; max-width:70px; overflow:hidden; text-overflow:ellipsis;}
+.dot.selected .chip{outline:3px solid var(--gold);}
+.dot .sta-ring{position:absolute; top:-4px; left:2px; width:40px; height:40px; border-radius:50%;
+  border:2px solid transparent; pointer-events:none;}
+.dot.tired .chip{background:#f7d4c9; color:var(--opp-deep);}
+.dot.tired .sta-ring{border-color:var(--opp);}
+.roster{display:flex; flex-direction:column; gap:6px; max-height:420px; overflow-y:auto;}
+.drag-ghost{position:fixed; transform:translate(-50%,-120%); pointer-events:none; z-index:999;
+  background:var(--navy); color:#fff; font-size:13px; font-weight:600; padding:5px 12px;
+  border-radius:999px; box-shadow:0 4px 12px rgba(0,0,0,.3); white-space:nowrap;}
+.p-row{display:flex; align-items:center; gap:10px; padding:8px 10px; border:1px solid var(--border);
+  border-radius:8px; background:#fff; cursor:pointer; font-size:13px;}
+.p-row:hover{border-color:var(--border-strong);}
+.p-row.selected{border-color:var(--navy); background:#eef3f9;}
+.p-row .pos{width:30px; text-align:center; font-size:11px; font-weight:700; color:var(--kor-deep);
+  background:#eaf2fc; border-radius:5px; padding:2px 0;}
+.p-row .nm{flex:1; font-weight:600;}
+.p-row .st{font-size:11.5px; color:var(--muted); font-variant-numeric:tabular-nums;}
+.hint{font-size:12.5px; color:var(--muted); margin-top:10px;}
+
+/* ---------- match ---------- */
+.scorebar{display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
+  background:var(--navy); color:#fff; border-radius:14px; padding:12px 18px; margin-bottom:14px;}
+.scorebar .teams{display:flex; align-items:center; gap:14px;}
+.scorebar .tname{font-size:15px; font-weight:600;}
+.scorebar .score{font-size:26px; font-weight:800; background:rgba(255,255,255,.12);
+  border-radius:8px; padding:0 16px; font-variant-numeric:tabular-nums;}
+.scorebar .clock{font-size:15px; font-weight:700; color:var(--gold); font-variant-numeric:tabular-nums;}
+.scorebar .ctrl{display:flex; gap:6px;}
+.scorebar .ctrl button{background:rgba(255,255,255,.1); border-color:rgba(255,255,255,.25); color:#fff; font-size:12px; padding:5px 11px;}
+.scorebar .ctrl button:hover{background:rgba(255,255,255,.2);}
+.scorebar .ctrl button.on{background:var(--gold); color:#412402; border-color:var(--gold); font-weight:700;}
+.match-grid{display:grid; grid-template-columns:minmax(0,1.5fr) minmax(0,1fr); gap:14px;}
+@media(max-width:820px){.match-grid{grid-template-columns:1fr;}}
+.momentum{display:flex; align-items:center; gap:10px; margin-top:10px;}
+.momentum .lbl{font-size:12px; color:var(--sub); white-space:nowrap;}
+.momentum .bar{flex:1; height:9px; border-radius:5px; overflow:hidden; display:flex; border:1px solid var(--border);}
+.momentum .k{background:var(--kor); transition:width .6s;}
+.momentum .o{background:var(--opp); flex:1;}
+.momentum .val{font-size:12px; font-weight:700; color:var(--kor-deep); font-variant-numeric:tabular-nums;}
+.tac{display:flex; flex-direction:column; gap:10px;}
+.tac .panel{padding:12px 14px;}
+.slider-row{display:flex; align-items:center; justify-content:space-between; font-size:12.5px; margin-bottom:2px;}
+.slider-row .v{font-weight:700;}
+input[type=range]{width:100%; accent-color:var(--navy); margin:2px 0 8px;}
+.sub-list{display:flex; flex-direction:column; gap:6px; max-height:180px; overflow-y:auto; margin-top:6px;}
+.feed{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:10px 14px; margin-top:14px;}
+.feed h3{font-size:12px; color:var(--sub); font-weight:600; margin-bottom:6px;}
+.feed-list{display:flex; flex-direction:column; gap:5px; max-height:220px; overflow-y:auto;}
+.fe{font-size:13.5px; padding-left:10px; border-left:3px solid transparent;}
+.fe .t{font-weight:700; font-variant-numeric:tabular-nums; margin-right:6px; color:var(--sub);}
+.fe.goal{border-left-color:var(--gold); font-weight:700;}
+.fe.coach{border-left-color:var(--kor); color:var(--kor-deep); font-weight:600;}
+.fe.opp-goal{border-left-color:var(--opp); font-weight:700;}
+.fe.dim{color:var(--muted);}
+.oppdot{position:absolute; width:16px; height:16px; margin:-8px 0 0 -8px; border-radius:50%; transition:left .9s ease, top .9s ease;
+  background:var(--opp); border:2px solid rgba(255,255,255,.85); box-shadow:0 1px 3px rgba(0,0,0,.3);
+  pointer-events:none; z-index:5;}
+.ball{position:absolute; width:12px; height:12px; border-radius:50%; background:#fff;
+  border:1.5px solid #222; margin:-6px 0 0 -6px; transition:left .7s ease, top .7s ease; z-index:20; pointer-events:none;}
+.toast{position:fixed; left:50%; top:18px; transform:translateX(-50%); background:var(--navy); color:#fff;
+  padding:10px 22px; border-radius:999px; font-size:14px; font-weight:600; opacity:0; pointer-events:none;
+  transition:opacity .3s; z-index:99;}
+.toast.show{opacity:1;}
+
+/* ---------- result ---------- */
+.result-hero{text-align:center; padding:40px 0 24px;}
+.result-hero .verdict{font-size:13px; font-weight:700; letter-spacing:.2em;}
+.result-hero h2{font-size:clamp(34px,6vw,52px); font-weight:800; color:var(--navy); margin:8px 0;}
+.result-hero .fscore{font-size:44px; font-weight:800; font-variant-numeric:tabular-nums;}
+.compare{display:grid; grid-template-columns:1fr 1fr; gap:14px; max-width:640px; margin:20px auto;}
+@media(max-width:560px){.compare{grid-template-columns:1fr;}}
+.cmp-card{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:18px; text-align:center;}
+.cmp-card.mine{border:2px solid var(--kor);}
+.cmp-card .lb{font-size:12px; color:var(--sub); font-weight:600; margin-bottom:6px;}
+.cmp-card .sc{font-size:30px; font-weight:800; font-variant-numeric:tabular-nums;}
+.cmp-card .rs{font-size:13px; color:var(--sub); margin-top:4px;}
+.stats-row{display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; max-width:640px; margin:0 auto 24px;}
+.stat{background:var(--card); border:1px solid var(--border); border-radius:10px; padding:12px; text-align:center;}
+.stat .n{font-size:22px; font-weight:800; font-variant-numeric:tabular-nums;}
+.stat .l{font-size:12px; color:var(--sub);}
+.actions{display:flex; gap:10px; justify-content:center; flex-wrap:wrap;}
+.footer-note{text-align:center; font-size:12px; color:var(--muted); margin-top:48px;}
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<!-- ============ 1. 시나리오 선택 ============ -->
+<section class="screen active" id="scr-intro">
+  <div class="hero">
+    <div class="kicker">2026 WORLD CUP — WHAT IF</div>
+    <h1>RE<span class="accent">MATCH</span></h1>
+    <p>탈락은 이미 정해진 결과가 아닙니다.<br>이번엔 당신이 감독석에 앉을 차례입니다.</p>
+  </div>
+  <div class="scenario-grid" id="scenario-grid"></div>
+  <p class="footer-note">본 서비스의 팀·선수·경기 데이터는 대회 규정에 따라 자체 제작한 가상 데이터입니다.</p>
+</section>
+
+<!-- ============ 2. 락커룸 ============ -->
+<section class="screen" id="scr-locker">
+  <div class="topbar">
+    <div>
+      <h2 id="lk-title">락커룸</h2>
+      <div class="sub" id="lk-sub"></div>
+    </div>
+    <button class="primary" id="btn-kickoff">킥오프</button>
+  </div>
+  <div class="locker-grid">
+    <div class="panel">
+      <h3>포메이션</h3>
+      <div class="form-btns" id="lk-formations"></div>
+      <div class="pitch-wrap" id="lk-pitch"></div>
+      <p class="hint">선수를 드래그해서 서로 위치를 바꾸거나, 오른쪽 벤치 선수를 눌러 교체 투입할 수 있습니다.</p>
+    </div>
+    <div class="panel">
+      <h3>스쿼드 — 벤치를 눌러 선발과 교체</h3>
+      <div class="roster" id="lk-roster"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 3. 매치 ============ -->
+<section class="screen" id="scr-match">
+  <div class="scorebar">
+    <div class="teams">
+      <span class="tname">대한민국</span>
+      <span class="score" id="m-score">0 : 0</span>
+      <span class="tname" id="m-opp">상대팀</span>
+    </div>
+    <span class="clock" id="m-clock">0'</span>
+    <div class="ctrl">
+      <button id="btn-pause">일시정지</button>
+      <button id="btn-sp1" class="on">1x</button>
+      <button id="btn-sp2">2x</button>
+    </div>
+  </div>
+  <div class="match-grid">
+    <div>
+      <div class="pitch-wrap" id="m-pitch"></div>
+      <div class="momentum">
+        <span class="lbl">모멘텀</span>
+        <div class="bar"><div class="k" id="mom-k" style="width:50%"></div><div class="o"></div></div>
+        <span class="val" id="mom-v">50%</span>
+      </div>
+      <div class="feed" style="margin-top:10px;">
+        <h3>실시간 중계</h3>
+        <div class="feed-list" id="feed" style="max-height:72px;"></div>
+      </div>
+    </div>
+    <div class="tac">
+      <div class="panel">
+        <h3>포메이션</h3>
+        <div class="form-btns" id="m-formations" style="margin-bottom:0;"></div>
+      </div>
+      <div class="panel">
+        <div class="slider-row"><span>수비 라인</span><span class="v" id="v-line">보통</span></div>
+        <input type="range" id="sl-line" min="0" max="100" value="50" step="1">
+        <div class="slider-row"><span>압박 강도</span><span class="v" id="v-press">보통</span></div>
+        <input type="range" id="sl-press" min="0" max="100" value="50" step="1">
+      </div>
+      <div class="panel">
+        <div class="slider-row"><span>교체</span><span class="v" id="v-subs">3회 남음</span></div>
+        <div class="hint" style="margin-top:2px;">나가는 선수 → 들어올 선수 순서로 선택</div>
+        <div class="sub-list" id="m-out"></div>
+        <div class="sub-list" id="m-in"></div>
+        <button style="width:100%; margin-top:8px;" id="btn-sub" disabled>교체 실행</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 4. 결과 ============ -->
+<section class="screen" id="scr-result">
+  <div class="result-hero">
+    <div class="verdict" id="r-verdict"></div>
+    <h2 id="r-title"></h2>
+    <div class="fscore" id="r-score"></div>
+  </div>
+  <div class="compare">
+    <div class="cmp-card"><div class="lb">실제 역사</div><div class="sc" id="r-actual"></div><div class="rs" id="r-actual-rs"></div></div>
+    <div class="cmp-card mine"><div class="lb">당신의 결과</div><div class="sc" id="r-mine"></div><div class="rs" id="r-mine-rs"></div></div>
+  </div>
+  <div class="stats-row" id="r-stats"></div>
+  <p style="text-align:center; max-width:560px; margin:0 auto 26px; color:var(--sub); font-size:14.5px;" id="r-comment"></p>
+  <div class="actions">
+    <button class="primary" id="btn-retry">같은 경기 다시 지휘하기</button>
+    <button id="btn-home">다른 시나리오 선택</button>
+  </div>
+</section>
+
+<script>
+"use strict";
+/* ================= 데이터 (실제 2026 대표팀 명단 기반, 능력치는 자체 설정) =================
+ slot: 선수의 실제 주 포지션 계열. GK / CB / FB(풀백·윙백) / DM / CM / AM / WG(측면공격) / ST
+ 이 slot을 우선 매칭해 자동배치가 실제 역할과 어긋나지 않게 한다. */
+const P = (name,slot,atk,def,pas,spd,sta)=>({name,slot,pos:LINE_OF[slot],atk,def,pas,spd,sta,maxSta:sta});
+const LINE_OF = {GK:"GK",CB:"DF",FB:"DF",DM:"MF",CM:"MF",AM:"MF",WG:"FW",ST:"FW"};
+const SQUAD = [
+  P("김승규","GK",20,86,64,54,90), P("조현우","GK",19,85,62,55,90),
+  P("김민재","CB",48,92,76,72,88), P("이한범","CB",40,82,66,70,86),
+  P("이기혁","CB",42,79,68,66,87), P("박진섭","CB",44,80,66,70,86),
+  P("설영우","FB",60,78,76,84,88), P("이태석","FB",56,74,72,82,87),
+  P("김문환","FB",52,74,68,80,86), P("김태현","FB",50,73,70,78,86),
+  P("카스트로프","DM",54,78,78,72,87), P("박용우","DM",48,80,74,62,87),
+  P("황인범","CM",74,66,88,72,86), P("백승호","CM",68,70,84,66,86),
+  P("김진규","CM",64,64,80,72,85),
+  P("이강인","AM",88,48,90,80,83), P("이재성","AM",74,60,84,72,85),
+  P("이동경","AM",76,52,80,78,85),
+  P("황희찬","WG",84,46,74,89,85), P("배준호","WG",74,48,76,85,86),
+  P("양현준","WG",72,44,72,86,86), P("엄지성","WG",70,44,74,84,86),
+  P("손흥민","WG",90,44,84,85,83),
+  P("오현규","ST",80,42,66,84,88), P("조규성","ST",80,46,70,72,86),
+];
+/* 포지션 슬롯 → 역할코드가 요구하는 slot 우선순위 (자동배치·재배치용) */
+const ROLE_SLOTS = {
+  GK:["GK"], CB:["CB","FB"], LB:["FB","CB"], RB:["FB","CB"], LWB:["FB","WG"], RWB:["FB","WG"],
+  DM:["DM","CM"], CDM:["DM","CM"], CM:["CM","DM","AM"], LM:["WG","AM","CM"], RM:["WG","AM","CM"],
+  AM:["AM","CM"], CAM:["AM","CM"], LAM:["AM","CM","WG"], RAM:["AM","CM","WG"],
+  LW:["WG","AM"], RW:["WG","AM"], ST:["ST","WG"], CF:["ST","WG"],
+};
+const FORMATIONS = {
+  "3-4-2-1":{roles:["GK","CB","CB","CB","LWB","CM","CM","RWB","CAM","CAM","ST"],
+    coords:[[50,93.5],[30,80],[50,82],[70,80],[11,58],[40,53],[60,53],[89,58],[35,40],[65,40],[50,22]]},
+  "4-3-3":{roles:["GK","LB","CB","CB","RB","CM","CDM","CM","LW","ST","RW"],
+    coords:[[50,93.5],[14,76],[37,80],[63,80],[86,76],[36,52],[50,62],[64,52],[16,33],[50,24],[84,33]]},
+  "4-4-2":{roles:["GK","LB","CB","CB","RB","LM","CM","CM","RM","ST","ST"],
+    coords:[[50,93.5],[14,76],[37,80],[63,80],[86,76],[15,52],[38,53],[62,53],[85,52],[38,22],[62,22]]},
+  "3-4-3":{roles:["GK","CB","CB","CB","LM","CM","CM","RM","LW","ST","RW"],
+    coords:[[50,93.5],[28,80],[50,82],[72,80],[13,55],[38,55],[62,55],[87,55],[18,30],[50,22],[82,30]]},
+  "5-4-1":{roles:["GK","LWB","CB","CB","CB","RWB","LM","CM","CM","RM","ST"],
+    coords:[[50,93.5],[10,68],[30,81],[50,83],[70,81],[90,68],[20,50],[42,56],[58,56],[80,50],[50,22]]},
+};
+const roleLine = r => r==="GK"?"GK":/B$/.test(r)&&r!=="GK"?"DF":/^(LW|RW|ST|CF)$/.test(r)?"FW":"MF";
+/* 자유 위치(x,y%)를 역할 라벨로 판정. y: 위(2)=상대골 ~ 아래(98)=우리골 */
+function roleAt(x,y,isGK){
+  if(isGK) return "GK";
+  const left = x<34, right = x>66;
+  const midLeft = x<44, midRight = x>56;
+  if(y>=72){ // 최후방 수비 라인 (백3는 모두 CB, 백4의 바깥쪽만 풀백)
+    if(x<26) return "LB"; if(x>74) return "RB"; return "CB";
+  }
+  if(y>=58){ // 윙백/수미 라인
+    if(left) return "LWB"; if(right) return "RWB"; return "CDM";
+  }
+  if(y>=42){ // 중원
+    if(left) return "LM"; if(right) return "RM"; return "CM";
+  }
+  if(y>=26){ // 공격형 미드/2선
+    if(left) return "LW"; if(right) return "RW";
+    if(midLeft) return "LAM"; if(midRight) return "RAM"; return "CAM";
+  }
+  // 최전방
+  if(left) return "LW"; if(right) return "RW"; return "ST";
+}
+const SCENARIOS = [
+  { id:"rsa", opp:"남아공", oppForm:"5-4-1", oppAtk:76, oppDef:82, startMin:60, score:[0,1],
+    tickMs:2200, form:"3-4-2-1",
+    lineup:["김승규","이한범","김민재","이기혁","이태석","황인범","백승호","설영우","황희찬","이강인","오현규"],
+    title:"후반 18분, 마세코에게 실점한 직후", desc:"2026.6.25 몬테레이. 조별리그 최종전 — 비기기만 해도 조 2위로 32강입니다. 실점 직후, 남은 30분을 당신이 지휘하세요. 동점골 하나면 역사가 바뀝니다.",
+    meta:["난이도 ★★★","실제 최종전","실제 결과: 0-1 패배 · 탈락"],
+    actual:{sc:"0 : 1", rs:"패배 · 조 3위 탈락"},
+    outcomes:{
+      win:{v:"HISTORY REWRITTEN",c:"var(--success)",t:"역전승, 조 2위로 32강!",rs:"승리 · 32강 진출",
+        cm:"실제 역사에서 한국은 밀집 수비를 끝내 뚫지 못했습니다. 당신의 개입이 그 벽을 넘었습니다. 이 전술, 기획서에 적어둘 만하네요."},
+      draw:{v:"HISTORY REWRITTEN",c:"var(--success)",t:"동점골 — 그거면 충분했다",rs:"무승부 · 조 2위 32강 진출",
+        cm:"승리가 아니어도 됐습니다. 딱 한 골. 실제 역사에서 나오지 않았던 그 한 골을 당신이 만들어냈고, 한국은 32강에 진출합니다."},
+      loss:{v:"HISTORY REPEATS",c:"var(--danger)",t:"이번에도 벽을 넘지 못했다",rs:"패배 · 조 3위 탈락",
+        cm:"밀집 수비를 상대로 조급함은 독입니다. 라인을 올리는 타이밍, 교체 카드의 순서 — 무엇이 아쉬웠나요? 같은 30분을 다시 지휘할 수 있습니다."}
+    }
+  },
+  { id:"mex", opp:"멕시코", oppForm:"4-3-3", oppAtk:86, oppDef:86, startMin:0, score:[0,0],
+    tickMs:1400, form:"3-4-2-1",
+    lineup:["김승규","이한범","김민재","이기혁","설영우","황인범","백승호","이태석","이재성","이강인","오현규"],
+    title:"과달라하라의 함성을 잠재워라", desc:"2026.6.19 과달라하라. 홈팬 앞의 개최국 멕시코와의 2차전 — 이기면 조 1위. 실제 경기는 수비 실수 한 번에 무너진 0-1 패배였습니다. 90분 전체를 다시 설계하세요.",
+    meta:["난이도 ★★★★","풀매치 90분","실제 결과: 0-1 패배"],
+    actual:{sc:"0 : 1", rs:"패배 · 조 2위로 하락"},
+    outcomes:{
+      win:{v:"HISTORY REWRITTEN",c:"var(--success)",t:"개최국을 침묵시켰습니다",rs:"승리 · 조 1위 등극",
+        cm:"이 대회에서 멕시코를 이긴 팀은 없었습니다. 조별리그 무실점 3연승 팀을 상대로 당신은 답을 찾았습니다. 조 1위로 32강 대진까지 유리해집니다."},
+      draw:{v:"NOT BAD",c:"var(--gold)",t:"승점 1점을 챙겼습니다",rs:"무승부 · 조 2위 유지",
+        cm:"실제 역사의 0-1 패배보다 나은 결과입니다. 승점 1점이면 최종전 부담이 크게 줄어듭니다. 다만 조 1위의 기회는 놓쳤네요 — 한 번 더?"},
+      loss:{v:"HISTORY REPEATS",c:"var(--danger)",t:"개최국의 벽은 높았다",rs:"패배 · 실제 역사와 동일",
+        cm:"무실점 3연승 팀에게는 이유가 있습니다. 다만 당신에게는 실제 감독에게 없던 것이 있죠 — 다시 도전할 기회. 라인 설정부터 다시 고민해 보세요."}
+    }
+  },
+];
+
+/* ================= 상태 ================= */
+let scen=null, formation="4-3-3", starters=[], bench=[], positions=[];
+let sim=null; // {min,score,mom,shots,onT,oppShots,subsLeft,possAcc,ticks,addedTime,over}
+let timer=null, speed=1, paused=false;
+let lockerSel=null, subOut=null, subIn=null;
+
+/* ================= 유틸 ================= */
+const $=id=>document.getElementById(id);
+const show=id=>{document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));$(id).classList.add("active");window.scrollTo(0,0);};
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const pick=arr=>arr[Math.floor(Math.random()*arr.length)];
+let toastT=null;
+function toast(msg){const t=$("toast");t.textContent=msg;t.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("show"),1800);}
+
+const PITCH_SVG = `<svg class="pitch-lines" viewBox="0 0 100 100" preserveAspectRatio="none">
+  <!-- 터치라인 -->
+  <rect x="3" y="4" width="94" height="92" fill="none" stroke="#ffffff" stroke-width=".8"/>
+  <line x1="3" y1="50" x2="97" y2="50" stroke="#ffffff" stroke-width=".8"/>
+  <circle cx="50" cy="50" r="9" fill="none" stroke="#ffffff" stroke-width=".8"/>
+  <!-- 페널티 박스 + 골 에어리어 (위: 상대 진영) -->
+  <rect x="30" y="4" width="40" height="11" fill="none" stroke="#ffffff" stroke-width=".8"/>
+  <rect x="39" y="4" width="22" height="4.5" fill="none" stroke="#ffffff" stroke-width=".8"/>
+  <!-- 페널티 박스 + 골 에어리어 (아래: 우리 진영) -->
+  <rect x="30" y="85" width="40" height="11" fill="none" stroke="#ffffff" stroke-width=".8"/>
+  <rect x="39" y="91.5" width="22" height="4.5" fill="none" stroke="#ffffff" stroke-width=".8"/>
+  <!-- 상대 골대 (위) : 어두운 색으로 골문 강조 -->
+  <rect x="42" y="1.3" width="16" height="2.7" fill="rgba(20,24,28,.28)" stroke="#14181C" stroke-width="1"/>
+  <path d="M45 1.3 V4 M48 1.3 V4 M51 1.3 V4 M54 1.3 V4 M57 1.3 V4 M42 2.65 H58" stroke="rgba(20,24,28,.8)" stroke-width=".3"/>
+  <!-- 우리 골대 (아래) -->
+  <rect x="42" y="96" width="16" height="2.7" fill="rgba(20,24,28,.28)" stroke="#14181C" stroke-width="1"/>
+  <path d="M45 96 V98.7 M48 96 V98.7 M51 96 V98.7 M54 96 V98.7 M57 96 V98.7 M42 97.35 H58" stroke="rgba(20,24,28,.8)" stroke-width=".3"/>
+</svg>`;
+const OPP_FORMS = { // 상대 진영(위쪽) 미러 좌표
+  "4-4-2":[[50,6],[16,22],[38,19],[62,19],[84,22],[16,44],[39,40],[61,40],[84,44],[40,64],[60,64]],
+  "4-3-3":[[50,6],[16,20],[38,17],[62,17],[84,20],[28,40],[50,34],[72,40],[16,62],[50,70],[84,62]], // 공세
+  "5-4-1":[[50,6],[10,28],[30,16],[50,14],[70,16],[90,28],[20,34],[42,30],[58,30],[80,34],[50,52]], // 잠그기
+};
+function currentOppForm(){
+  if(sim && sim.oppMode==="attack") return "4-3-3";
+  if(sim && sim.oppMode==="park") return "5-4-1";
+  return (scen && scen.oppForm) || "4-4-2";
+}
+
+/* ================= 스쿼드 배치 ================= */
+/* 현재 formation 프리셋 좌표로 positions 초기화 (자유 드래그의 시작점) */
+function syncPositionsToFormation(){
+  const f = FORMATIONS[formation];
+  positions = f.coords.map(c=>({x:c[0], y:c[1]}));
+}
+function autoPick(){
+  // 시나리오에 실제 선발 라인업이 지정돼 있으면 그대로 배치
+  if(scen && scen.lineup){
+    const roles = FORMATIONS[formation].roles;
+    starters = scen.lineup.map(nm => SQUAD.find(p=>p.name===nm)).filter(Boolean);
+    // 라인업이 11명이 아니거나 매칭 실패 시 slot 자동배치로 폴백
+    if(starters.length === roles.length){
+      bench = SQUAD.filter(p=>!starters.includes(p));
+      syncPositionsToFormation();
+      return;
+    }
+  }
+  slotAssign(SQUAD.slice());
+  syncPositionsToFormation();
+}
+/* slot 우선 매칭 자동배치: 각 역할코드가 원하는 slot 순서대로 최적 선수를 채운다 */
+function slotAssign(pool){
+  const roles = FORMATIONS[formation].roles;
+  const avail = pool.slice();
+  const take = (wants)=>{
+    for(const w of wants){
+      const i = avail.findIndex(p=>p.slot===w);
+      if(i>=0) return avail.splice(i,1)[0];
+    }
+    return null;
+  };
+  starters = roles.map(r=>{
+    const wants = ROLE_SLOTS[r] || ["CM"];
+    let pl = take(wants);
+    if(!pl) pl = avail.shift(); // 남는 선수 아무나
+    return pl;
+  });
+  bench = SQUAD.filter(p=>!starters.includes(p));
+}
+function reflow(){ // 포메이션 변경 시 현재 선발 11명을 유지하되 slot에 맞게 역할 재배치
+  const cur=[...starters];
+  const roles=FORMATIONS[formation].roles;
+  const avail=cur.slice();
+  const take=(wants)=>{
+    for(const w of wants){
+      const i=avail.findIndex(p=>p.slot===w);
+      if(i>=0) return avail.splice(i,1)[0];
+    }
+    return null;
+  };
+  const misfit=[];
+  starters=roles.map(r=>{
+    if(r==="GK"){ const g=avail.findIndex(p=>p.slot==="GK"); return g>=0?avail.splice(g,1)[0]:avail.shift(); }
+    const wants=ROLE_SLOTS[r]||["CM"];
+    let pl=take(wants);
+    if(!pl){ pl=avail.shift(); if(pl) misfit.push({idx:roles.indexOf(r),role:r}); }
+    return pl;
+  });
+  // slot이 전혀 안 맞게 밀려난 선수는 벤치의 적합 자원과 교체 (예: 4백 전환 시 남는 CB → 벤치 공격수)
+  misfit.forEach(({idx,role})=>{
+    const cand = starters[idx];
+    const wants = ROLE_SLOTS[role]||[];
+    if(wants.includes(cand.slot)) return; // 실은 맞으면 패스
+    const b = bench.find(bp=>wants.includes(bp.slot) && (role==="GK")===(bp.slot==="GK"));
+    if(b){ const bi=bench.indexOf(b); bench[bi]=cand; starters[idx]=b; }
+  });
+  syncPositionsToFormation(); // 프리셋 전환 시 위치도 새 대형으로 리셋
+}
+
+/* ================= 피치 렌더 ================= */
+function renderPitch(el, draggable, showOpp){
+  el.innerHTML = PITCH_SVG;
+  if(showOpp){
+    OPP_FORMS[currentOppForm()].forEach(c=>{
+      const o=document.createElement("div");
+      o.className="oppdot";
+      o.style.left=c[0]+"%"; o.style.top=c[1]+"%";
+      el.appendChild(o);
+    });
+  }
+  if(!positions.length) syncPositionsToFormation();
+  starters.forEach((p,i)=>{
+    const pos = positions[i] || {x:50,y:50};
+    const isGK = p.slot==="GK";
+    const role = roleAt(pos.x, pos.y, isGK);
+    const d=document.createElement("div");
+    d.className="dot"+(isGK?" gk":"");
+    d.dataset.idx=i;
+    d.style.left=pos.x+"%";
+    d.style.top=pos.y+"%";
+    d.innerHTML=`<div class="sta-ring"></div><div class="chip">${role}</div><div class="nm">${p.name}</div>`;
+    el.appendChild(d);
+  });
+  if(draggable) enableDrag(el);
+}
+/* 현재 위치 기준 역할코드 배열 (능력치 계산용) */
+function currentRoles(){
+  return starters.map((p,i)=>{
+    const pos=positions[i]||{x:50,y:50};
+    return roleAt(pos.x,pos.y,p.slot==="GK");
+  });
+}
+function enableDrag(el){
+  if(el.dataset.dragBound) return; // 재렌더 시 리스너 중복 방지
+  el.dataset.dragBound="1";
+  const isMatch = el.id==="m-pitch";
+  const rerender = ()=>{ if(isMatch) renderMatchPitch(); else { renderPitch(el,true); renderRoster(); } };
+  let drag=null;
+  el.addEventListener("pointerdown",e=>{
+    const dot=e.target.closest(".dot"); if(!dot) return;
+    e.preventDefault();
+    drag={dot,idx:+dot.dataset.idx,sx:e.clientX,sy:e.clientY,moved:false};
+    el.setPointerCapture(e.pointerId);
+  });
+  el.addEventListener("pointermove",e=>{
+    if(!drag) return;
+    if(!drag.moved && Math.hypot(e.clientX-drag.sx,e.clientY-drag.sy)<8) return;
+    if(!drag.moved){drag.moved=true; drag.dot.classList.add("dragging");}
+    const r=el.getBoundingClientRect();
+    const x=Math.min(96,Math.max(4,(e.clientX-r.left)/r.width*100));
+    const y=Math.min(96,Math.max(4,(e.clientY-r.top)/r.height*100));
+    drag.dot.style.left=x+"%"; drag.dot.style.top=y+"%";
+    // 라이브 라벨 갱신
+    const p=starters[drag.idx];
+    const chip=drag.dot.querySelector(".chip");
+    if(chip) chip.textContent=roleAt(x,y,p.slot==="GK");
+  });
+  const doSwap=(i,j)=>{
+    [starters[i],starters[j]]=[starters[j],starters[i]];
+    [positions[i],positions[j]]=[positions[j],positions[i]];
+    toast(`${starters[j].name} ↔ ${starters[i].name} 위치 교체`);
+    if(isMatch&&sim&&!sim.over) feed(sim.min,`감독 지시: ${starters[j].name} ↔ ${starters[i].name} 위치 교체.`,"coach");
+  };
+  const endDrag=e=>{
+    if(!drag) return;
+    if(!drag.moved){ // 클릭 = 선택/스왑
+      const sel=el.dataset.selIdx;
+      if(sel===undefined||sel===""){ el.dataset.selIdx=drag.idx; drag.dot.classList.add("selected"); }
+      else if(+sel===drag.idx){ el.dataset.selIdx=""; drag.dot.classList.remove("selected"); }
+      else{ doSwap(+sel,drag.idx); el.dataset.selIdx=""; rerender(); }
+      drag=null; return;
+    }
+    const r=el.getBoundingClientRect();
+    const x=Math.min(96,Math.max(4,(e.clientX-r.left)/r.width*100));
+    const y=Math.min(96,Math.max(4,(e.clientY-r.top)/r.height*100));
+    const p=starters[drag.idx];
+    // 놓은 지점 근처에 다른 선수가 있으면 스왑, 없으면 자유 배치
+    let best=-1,bd=1e9;
+    positions.forEach((c,k)=>{ if(k===drag.idx)return; const dd=(c.x-x)**2+(c.y-y)**2; if(dd<bd){bd=dd;best=k;} });
+    if(e.type==="pointerup"){
+      if(best>=0 && bd<40){ // 아주 가까이 겹치면 자리 교환
+        doSwap(best,drag.idx);
+      } else if(p.slot==="GK" && y<55){
+        toast("골키퍼는 너무 전진할 수 없습니다"); // GK 과전진 방지
+      } else {
+        positions[drag.idx]={x,y}; // 자유 배치
+      }
+    }
+    drag.dot.classList.remove("dragging");
+    drag=null;
+    el.dataset.selIdx="";
+    rerender();
+  };
+  el.addEventListener("pointerup",endDrag);
+  el.addEventListener("pointercancel",endDrag);
+}
+/* 매치 피치 재렌더 (상대 도트 + 공 유지) */
+function renderMatchPitch(){
+  const el=$("m-pitch");
+  renderPitch(el,true,true);
+  const ball=document.createElement("div");
+  ball.className="ball"; ball.id="m-ball"; ball.style.left="50%"; ball.style.top="50%";
+  el.appendChild(ball);
+  render();
+}
+
+/* ================= 락커룸 ================= */
+function renderFormBtns(elId, onPick){
+  const el=$(elId); el.innerHTML="";
+  Object.keys(FORMATIONS).forEach(f=>{
+    const b=document.createElement("button");
+    b.textContent=f; if(f===formation)b.classList.add("on");
+    b.onclick=()=>onPick(f);
+    el.appendChild(b);
+  });
+}
+function renderRoster(){
+  const el=$("lk-roster"); el.innerHTML="";
+  const rows=[...starters.map(p=>({p,st:true})), ...bench.map(p=>({p,st:false}))];
+  rows.forEach(({p,st})=>{
+    const r=document.createElement("div");
+    r.className="p-row"+(lockerSel===p?" selected":"");
+    r.style.touchAction="none";
+    r.innerHTML=`<span class="pos">${p.pos}</span><span class="nm">${p.name}${st?"":' <span style="color:var(--muted);font-weight:400">(벤치)</span>'}</span>
+      <span class="st">공 ${p.atk} · 수 ${p.def} · 속 ${p.spd}</span>`;
+    attachRosterDrag(r,p);
+    el.appendChild(r);
+  });
+}
+/* 벤치/선발 행: 클릭 = 선택 스왑, 드래그 = 피치로 끌어서 교체 */
+function attachRosterDrag(r,p){
+  let start=null, ghost=null, dragged=false;
+  r.addEventListener("pointerdown",e=>{
+    start={x:e.clientX,y:e.clientY};
+    dragged=false;
+    r.setPointerCapture(e.pointerId);
+  });
+  r.addEventListener("pointermove",e=>{
+    if(!start) return;
+    if(!dragged && Math.hypot(e.clientX-start.x,e.clientY-start.y)<8) return;
+    if(!dragged){
+      dragged=true;
+      ghost=document.createElement("div");
+      ghost.className="drag-ghost";
+      ghost.textContent=p.name;
+      document.body.appendChild(ghost);
+    }
+    ghost.style.left=e.clientX+"px";
+    ghost.style.top=e.clientY+"px";
+  });
+  const end=e=>{
+    if(ghost){ghost.remove();ghost=null;}
+    if(!start) return;
+    const wasDrag=dragged;
+    start=null; dragged=false;
+    if(!wasDrag){ rosterClick(p); return; } // 드래그가 아니면 기존 클릭 스왑
+    if(e.type!=="pointerup") return;
+    const pitch=$("lk-pitch"), pr=pitch.getBoundingClientRect();
+    if(e.clientX<pr.left||e.clientX>pr.right||e.clientY<pr.top||e.clientY>pr.bottom) return;
+    const x=(e.clientX-pr.left)/pr.width*100, y=(e.clientY-pr.top)/pr.height*100;
+    let best=-1,bd=1e9;
+    positions.forEach((c,i)=>{const dd=(c.x-x)**2+(c.y-y)**2; if(dd<bd){bd=dd;best=i;}});
+    if(best<0||bd>260){toast("교체할 선수 위에 놓아주세요");return;}
+    const target=starters[best];
+    if(target===p) return;
+    if((p.slot==="GK")!==(target.slot==="GK")){toast("골키퍼 자리에는 골키퍼만 배치할 수 있습니다");return;}
+    const a=starters.indexOf(p);
+    if(a>=0){ [starters[a],starters[best]]=[starters[best],starters[a]]; toast(`${p.name} ↔ ${target.name} 위치 변경`); }
+    else{ starters[best]=p; bench[bench.indexOf(p)]=target; toast(`${target.name} OUT → ${p.name} IN`); }
+    lockerSel=null;
+    renderRoster(); renderPitch($("lk-pitch"),true);
+  };
+  r.addEventListener("pointerup",end);
+  r.addEventListener("pointercancel",end);
+}
+function rosterClick(p){
+  if(!lockerSel){ lockerSel=p; }
+  else if(lockerSel===p){ lockerSel=null; }
+  else{
+    const a=starters.indexOf(lockerSel), b=starters.indexOf(p);
+    if(a>=0&&b>=0){[starters[a],starters[b]]=[starters[b],starters[a]]; [positions[a],positions[b]]=[positions[b],positions[a]];}
+    else if(a>=0&&b<0){ if((p.slot==="GK")!==(lockerSel.slot==="GK")){toast("골키퍼 자리에는 골키퍼만 배치할 수 있습니다");lockerSel=null;renderRoster();return;}
+      starters[a]=p; bench[bench.indexOf(p)]=lockerSel; toast(`${lockerSel.name} → ${p.name} 선발 교체`);}
+    else if(a<0&&b>=0){ if((lockerSel.slot==="GK")!==(p.slot==="GK")){toast("골키퍼 자리에는 골키퍼만 배치할 수 있습니다");lockerSel=null;renderRoster();return;}
+      starters[b]=lockerSel; bench[bench.indexOf(lockerSel)]=p; toast(`${p.name} → ${lockerSel.name} 선발 교체`);}
+    lockerSel=null;
+  }
+  renderRoster(); renderPitch($("lk-pitch"),true);
+}
+function openLocker(){
+  $("lk-title").textContent=`락커룸 — vs ${scen.opp}`;
+  $("lk-sub").textContent=scen.startMin>0
+    ? `하프타임 · 현재 스코어 ${scen.score[0]} : ${scen.score[1]} · ${scen.title}`
+    : `킥오프 전 · ${scen.title}`;
+  openLockerBtns();
+  renderPitch($("lk-pitch"),true);
+  renderRoster();
+  show("scr-locker");
+}
+function openLockerBtns(){renderFormBtns("lk-formations",f=>{formation=f;reflow();openLockerBtns();renderPitch($("lk-pitch"),true);renderRoster();});}
+
+/* ================= 시뮬레이션 엔진 ================= */
+function teamRating(){
+  let atk=0,def=0,aw=0,dw=0;
+  const roles=currentRoles();
+  starters.forEach((p,i)=>{
+    const st=.7+.3*(p.sta/100);
+    const ln=roleLine(roles[i]);
+    const wa=ln==="FW"?1:ln==="MF"?.65:ln==="DF"?.25:0;
+    const wd=ln==="DF"?1:ln==="MF"?.6:ln==="GK"?1.1:.15;
+    atk+=(p.atk*.7+p.pas*.3)*st*wa; aw+=wa;
+    def+=(p.def*.8+p.spd*.2)*st*wd; dw+=wd;
+  });
+  const line=+$("sl-line").value, press=+$("sl-press").value;
+  let A=(atk/aw)*1.30, D=(def/dw)*1.10;
+  A*= 1+(line-50)/110 + (press-50)/300;
+  D*= 1-(line-50)/115;
+  return {A,D,press};
+}
+function oppRating(){
+  let a=scen.oppAtk*.95, d=scen.oppDef;
+  const fat=Math.max(.85,1-(sim.min-45)/300); // 상대도 후반 체력 저하
+  a*=fat; d*=fat;
+  const press=+$("sl-press").value;
+  a*= 1-(press-50)/230; // 강하게 압박하면 상대 공격 억제
+  if(sim.oppMode==="attack"){a*=1.12; d*=.93;} // 상대 AI: 밀리면 승부수
+  if(sim.oppMode==="park"){a*=.90; d*=1.00;} // 이기면 잠그기(수비 보정 최소화—뚫을 여지)
+  return {A:a,D:d};
+}
+function updateOppMode(){
+  const prev=sim.oppMode||"normal";
+  let next="normal";
+  if(sim.min>=70 && sim.score[1]<=sim.score[0]) next="attack";
+  if(sim.min>=70 && sim.score[1]>sim.score[0]) next="park";
+  if(next===prev) return;
+  sim.oppMode=next;
+  const dots=document.querySelectorAll("#m-pitch .oppdot");
+  OPP_FORMS[currentOppForm()].forEach((c,i)=>{
+    if(dots[i]){dots[i].style.left=c[0]+"%"; dots[i].style.top=c[1]+"%";}
+  });
+  if(next==="attack") feed(sim.min,`${scen.opp}이(가) 공격 숫자를 늘립니다! 4-3-3 전환 — 뒷공간이 열립니다.`,"coach");
+  else if(next==="park") feed(sim.min,`${scen.opp}이(가) 라인을 내리고 5-4-1로 잠급니다. 밀집 수비를 뚫어야 합니다.`,"coach");
+  else feed(sim.min,`${scen.opp}이(가) 기본 대형으로 돌아갑니다.`,"dim");
+}
+const NM = ln=>{
+  const roles=currentRoles();
+  const c=starters.filter((p,i)=>roleLine(roles[i])===ln);
+  return (c.length?pick(c):pick(starters)).name;
+};
+function feed(min,txt,cls){
+  const list=$("feed");
+  const d=document.createElement("div");
+  d.className="fe"+(cls?" "+cls:"");
+  d.innerHTML=`<span class="t">${min}'</span>${txt}`;
+  list.prepend(d);
+  while(list.children.length>40)list.removeChild(list.lastChild);
+}
+function moveBall(zone){ // zone: 'opp'(상대 골 근처=위) 'mid' 'our'
+  const b=$("m-ball"); if(!b)return;
+  const y=zone==="opp"?rnd(8,26):zone==="our"?rnd(74,92):rnd(38,62);
+  b.style.left=rnd(20,80)+"%"; b.style.top=y+"%";
+}
+function tick(){
+  sim.min++;
+  sim.ticks++;
+  // 체력
+  const press=+$("sl-press").value;
+  const lineV=+$("sl-line").value;
+  starters.forEach(p=>{ if(p.slot!=="GK") p.sta=Math.max(0,p.sta-(.45+press/100*.45+lineV/100*.3+rnd(0,.15))); });
+  if(sim.min===46&&scen.startMin===0){
+    starters.forEach(p=>{if(p.pos!=="GK")p.sta=Math.min(p.maxSta,p.sta+10);});
+    feed(45,`하프타임 — 선수들이 숨을 고릅니다. 후반전 시작!`,"coach");
+  }
+  updateOppMode();
+  const K=teamRating(), O=oppRating();
+  // 모멘텀 완만 회귀 + 전력 반영
+  const edge=(K.A/O.D)-(O.A/K.D);
+  sim.mom += edge*4 + rnd(-2.2,2.2);
+  sim.mom = Math.min(82,Math.max(18, sim.mom + (50-sim.mom)*.06));
+  sim.possAcc += sim.mom;
+  // 이벤트
+  const mK=.6+.4*(sim.mom/50), mO=.6+.4*((100-sim.mom)/50);
+  const pK=Math.min(.26,Math.max(.045, .105*(K.A/O.D)*mK));
+  const pO=Math.min(.26,Math.max(.045, .105*(O.A/K.D)*mO));
+  const r=Math.random();
+  if(r<pK) attack("K",K,O);
+  else if(r<pK+pO) attack("O",K,O);
+  else if(Math.random()<.13){ feed(sim.min,pick([
+      `${NM("MF")}, 중원에서 볼 배급을 조율합니다.`,
+      `${scen.opp}의 패스 줄기를 ${NM("DF")}이 끊어냅니다.`,
+      `양 팀 모두 신중한 빌드업. 템포 싸움이 이어집니다.`,
+      `${NM("FW")}이 수비 뒷공간을 노리지만 오프사이드.`,]),"dim");
+    moveBall("mid");
+  }
+  // 지친 선수 경고
+  if(sim.ticks%7===0){
+    const t=starters.find(p=>p.sta<35&&p.pos!=="GK");
+    if(t&&!t.warned){t.warned=true;feed(sim.min,`${t.name}, 체력이 한계에 가깝습니다. 교체를 고려하세요.`,"dim");}
+  }
+  render();
+  // 종료
+  const end = 90 + sim.addedTime;
+  if(sim.min>=end) finish();
+}
+function attack(side,K,O){
+  if(side==="K"){
+    moveBall("opp");
+    const q=K.A/O.D;
+    if(Math.random()<.62){ // 슛까지 감
+      sim.shots++;
+      const sc=pick(["FW","FW","MF"]), shooter=NM(sc);
+      if(Math.random()<.5*Math.min(1.35,q)){
+        sim.onT++;
+        if(Math.random()<.34*Math.min(1.3,q)){
+          sim.score[0]++; sim.mom=Math.min(85,sim.mom+16);
+          feed(sim.min,`⚽ 골! ${shooter}의 득점! 대한민국이 균형을 무너뜨립니다!`,"goal");
+          toast(`⚽ ${shooter} 득점!`);
+        } else feed(sim.min,`${shooter}의 슈팅! 골키퍼 선방에 막힙니다.`);
+      } else feed(sim.min,`${shooter}, 슈팅이 골대를 빗나갑니다.`);
+      sim.mom=Math.min(85,sim.mom+3);
+    } else feed(sim.min,`${NM("MF")}의 침투 패스 — ${scen.opp} 수비가 가까스로 걷어냅니다.`,"dim");
+  } else {
+    moveBall("our");
+    const q=O.A/K.D;
+    if(Math.random()<.62){
+      sim.oppShots++;
+      if(Math.random()<.5*Math.min(1.15,q)){
+        if(Math.random()<.32*Math.min(1.15,q)){
+          sim.score[1]++; sim.mom=Math.max(15,sim.mom-16);
+          feed(sim.min,`${scen.opp}의 득점… 실점하고 말았습니다.`,"opp-goal");
+          toast(`${scen.opp} 득점`);
+        } else feed(sim.min,`${scen.opp}의 유효 슈팅! ${starters[0].name}의 슈퍼 세이브!`);
+      } else feed(sim.min,`${scen.opp}의 슈팅은 골문을 벗어납니다.`,"dim");
+      sim.mom=Math.max(15,sim.mom-3);
+    } else feed(sim.min,`${scen.opp}의 측면 돌파를 ${NM("DF")}이 저지합니다.`,"dim");
+  }
+}
+function render(){
+  $("m-score").textContent=`${sim.score[0]} : ${sim.score[1]}`;
+  const disp = sim.min>90? `90+${sim.min-90}'` : sim.min+"'";
+  $("m-clock").textContent=(sim.min>45&&scen.startMin>0?"후반 ":"")+disp;
+  $("mom-k").style.width=sim.mom+"%";
+  $("mom-v").textContent=Math.round(sim.mom)+"%";
+  // 피치 체력 표시
+  const f=FORMATIONS[formation];
+  document.querySelectorAll("#m-pitch .dot").forEach(d=>{
+    const p=starters[+d.dataset.idx];
+    d.classList.toggle("tired",p&&p.sta<35&&p.pos!=="GK");
+  });
+}
+
+/* ================= 매치 화면 제어 ================= */
+function startMatch(){
+  starters.forEach(p=>{p.sta=p.maxSta;p.warned=false;});
+  bench.forEach(p=>{p.sta=p.maxSta;p.warned=false;});
+  sim={min:scen.startMin, score:[...scen.score], mom:scen.score[0]<scen.score[1]?42:50,
+    shots:0,onT:0,oppShots:0,subsLeft:3,possAcc:0,ticks:0,addedTime:3+Math.floor(rnd(0,3)),oppMode:"normal"};
+  if(scen.startMin>0){ // 경기 중간 시작이면 그때까지의 체력 소모 반영
+    starters.forEach(p=>{if(p.pos!=="GK")p.sta=Math.max(42,p.sta-(scen.startMin*.42+rnd(0,5)));});
+  }
+  $("m-opp").textContent=scen.opp;
+  $("feed").innerHTML="";
+  renderMatchPitch();
+  renderFormBtns("m-formations",changeFormationLive);
+  $("sl-line").value=50; $("sl-press").value=50;
+  $("v-line").textContent="보통"; $("v-press").textContent="보통";
+  $("v-subs").textContent="3회 남음";
+  subOut=null; subIn=null; renderSubLists();
+  paused=false; $("btn-pause").textContent="일시정지";
+  feed(sim.min, scen.startMin>0
+    ? `${sim.min}분, 스코어 ${scen.score[0]}-${scen.score[1]}. 지금부터 벤치의 모든 결정은 당신 몫입니다.`
+    : `킥오프! ${scen.opp}과의 승부가 시작됩니다.`, "coach");
+  render();
+  show("scr-match");
+  setSpeed(1);
+}
+function setSpeed(s){
+  speed=s;
+  $("btn-sp1").classList.toggle("on",s===1);
+  $("btn-sp2").classList.toggle("on",s===2);
+  if(timer)clearInterval(timer);
+  const base=(scen&&scen.tickMs)||1500;
+  if(!paused&&!sim.over) timer=setInterval(tick, s===1?base:base/2);
+}
+function changeFormationLive(f){
+  if(f===formation)return;
+  formation=f; reflow();
+  renderFormBtns("m-formations",changeFormationLive);
+  renderMatchPitch();
+  sim.mom=Math.max(15,sim.mom-4); // 재정비 리스크
+  feed(sim.min,`감독 지시: 포메이션을 ${f}(으)로 전환합니다.`,"coach");
+  renderSubLists(); render();
+}
+function renderSubLists(){
+  const out=$("m-out"), inn=$("m-in");
+  out.innerHTML=""; inn.innerHTML="";
+  const f=FORMATIONS[formation];
+  starters.forEach((p,i)=>{
+    if(p.pos==="GK")return;
+    const r=document.createElement("div");
+    r.className="p-row"+(subOut===p?" selected":"");
+    r.innerHTML=`<span class="pos">OUT</span><span class="nm">${p.name}</span><span class="st">체력 ${Math.round(p.sta)}</span>`;
+    r.onclick=()=>{subOut=subOut===p?null:p;renderSubLists();};
+    out.appendChild(r);
+  });
+  bench.filter(p=>p.pos!=="GK").forEach(p=>{
+    const r=document.createElement("div");
+    r.className="p-row"+(subIn===p?" selected":"");
+    r.innerHTML=`<span class="pos">IN</span><span class="nm">${p.name}</span><span class="st">공 ${p.atk} · 수 ${p.def} · 속 ${p.spd}</span>`;
+    r.onclick=()=>{subIn=subIn===p?null:p;renderSubLists();};
+    inn.appendChild(r);
+  });
+  $("btn-sub").disabled=!(subOut&&subIn&&sim&&sim.subsLeft>0&&!sim.over);
+}
+
+/* ================= 결과 ================= */
+function finish(){
+  sim.over=true;
+  clearInterval(timer);
+  const [k,o]=sim.score;
+  feed(sim.min,"경기 종료 휘슬이 울립니다!","coach");
+  const win=k>o, draw=k===o;
+  const poss=Math.round(sim.possAcc/Math.max(1,sim.ticks));
+  $("r-actual").textContent=scen.actual.sc;
+  $("r-actual-rs").textContent=scen.actual.rs;
+  const oc = win?scen.outcomes.win:draw?scen.outcomes.draw:scen.outcomes.loss;
+  $("r-mine").textContent=`${k} : ${o}`;
+  $("r-mine-rs").textContent=oc.rs;
+  $("r-score").textContent=`${k} : ${o}`;
+  $("r-verdict").textContent=oc.v;
+  $("r-verdict").style.color=oc.c;
+  $("r-title").textContent=oc.t;
+  $("r-comment").textContent=oc.cm+` (평균 모멘텀 ${poss}% · 슈팅 ${sim.shots}회)`;
+  $("r-stats").innerHTML=`
+    <div class="stat"><div class="n">${poss}%</div><div class="l">평균 모멘텀</div></div>
+    <div class="stat"><div class="n">${sim.shots}</div><div class="l">슈팅</div></div>
+    <div class="stat"><div class="n">${sim.onT}</div><div class="l">유효 슈팅</div></div>
+    <div class="stat"><div class="n">${3-sim.subsLeft}</div><div class="l">사용한 교체</div></div>`;
+  setTimeout(()=>show("scr-result"),1200);
+}
+
+/* ================= 이벤트 바인딩 ================= */
+function init(){
+  const grid=$("scenario-grid");
+  SCENARIOS.forEach(s=>{
+    const c=document.createElement("div");
+    c.className="scenario";
+    c.innerHTML=`<span class="tag" style="background:${s.startMin>0?'#fdeee8':'#e8f0fb'};color:${s.startMin>0?'var(--opp-deep)':'var(--kor-deep)'}">${s.startMin>0?"하프타임 개입":"풀매치"}</span>
+      <div class="vs">대한민국 vs ${s.opp}</div>
+      <div style="font-weight:700; margin-bottom:2px;">${s.title}</div>
+      <div class="desc">${s.desc}</div>
+      <div class="meta">${s.meta.map(m=>`<span>${m}</span>`).join("")}</div>`;
+    c.onclick=()=>{scen=s;formation=s.form||"4-3-3";autoPick();lockerSel=null;openLocker();};
+    grid.appendChild(c);
+  });
+  $("btn-kickoff").onclick=startMatch;
+  $("btn-pause").onclick=()=>{
+    if(sim&&sim.over)return;
+    paused=!paused;
+    $("btn-pause").textContent=paused?"재개":"일시정지";
+    if(paused){clearInterval(timer);timer=null;}
+    else setSpeed(speed);
+  };
+  $("btn-sp1").onclick=()=>setSpeed(1);
+  $("btn-sp2").onclick=()=>setSpeed(2);
+  $("sl-line").oninput=e=>{const v=+e.target.value;$("v-line").textContent=v>66?"높음":v<34?"낮음":"보통";};
+  $("sl-line").onchange=()=>{if(sim&&!sim.over)feed(sim.min,`감독 지시: 수비 라인 ${$("v-line").textContent}. ${+$("sl-line").value>66?"공격적인 운영!":"안정 위주 운영."}`,"coach");};
+  $("sl-press").oninput=e=>{const v=+e.target.value;$("v-press").textContent=v>66?"강함":v<34?"약함":"보통";};
+  $("sl-press").onchange=()=>{if(sim&&!sim.over)feed(sim.min,`감독 지시: 전방 압박 ${$("v-press").textContent}.`,"coach");};
+  $("btn-sub").onclick=()=>{
+    if(!(subOut&&subIn&&sim.subsLeft>0))return;
+    const i=starters.indexOf(subOut);
+    starters[i]=subIn;
+    bench[bench.indexOf(subIn)]=subOut;
+    sim.subsLeft--;
+    $("v-subs").textContent=`${sim.subsLeft}회 남음`;
+    feed(sim.min,`교체: ${subOut.name} OUT → ${subIn.name} IN`,"coach");
+    toast(`교체 · ${subIn.name} 투입`);
+    subOut=null;subIn=null;
+    renderSubLists();
+    renderMatchPitch();
+  };
+  $("btn-retry").onclick=()=>{lockerSel=null;openLocker();};
+  $("btn-home").onclick=()=>{clearInterval(timer);show("scr-intro");};
+}
+document.addEventListener("DOMContentLoaded",init);
+
+</script>
+</body>
+</html>
