@@ -588,14 +588,16 @@ function enableDrag(el){
     const x=Math.min(96,Math.max(4,(e.clientX-r.left)/r.width*100));
     const y=Math.min(96,Math.max(4,(e.clientY-r.top)/r.height*100));
     const p=starters[drag.idx];
-    // 놓은 지점 근처에 다른 선수가 있으면 스왑, 없으면 자유 배치
+    // 놓은 지점에서 가장 가까운 다른 선수 찾기
     let best=-1,bd=1e9;
     positions.forEach((c,k)=>{ if(k===drag.idx)return; const dd=(c.x-x)**2+(c.y-y)**2; if(dd<bd){bd=dd;best=k;} });
     if(e.type==="pointerup"){
-      if(best>=0 && bd<40){ // 아주 가까이 겹치면 자리 교환
+      // 가까운 선수 위에 놓으면(반경 넉넉히) 자리 교환, 아니면 그 지점에 자유 배치
+      if(best>=0 && bd<130){
         doSwap(best,drag.idx);
       } else if(p.slot==="GK" && y<55){
         toast("골키퍼는 너무 전진할 수 없습니다"); // GK 과전진 방지
+        // 위치 되돌림 (자유배치 안 함)
       } else {
         positions[drag.idx]={x,y}; // 자유 배치
       }
