@@ -77,7 +77,7 @@ button:disabled{opacity:.4; cursor:not-allowed;}
   border:2px solid transparent; pointer-events:none;}
 .dot.tired .chip{background:#f7d4c9; color:var(--opp-deep);}
 .dot.tired .sta-ring{border-color:var(--opp);}
-.roster{display:flex; flex-direction:column; gap:6px; flex:1; min-height:0; overflow-y:auto;}
+.roster{display:flex; flex-direction:column; gap:6px; flex:1; min-height:0; max-height:72vh; overflow-y:auto;}
 .locker-grid > .panel:last-child{display:flex; flex-direction:column;}
 @media(max-width:820px){.roster{max-height:420px; flex:none;}}
 .drag-ghost{position:fixed; transform:translate(-50%,-120%); pointer-events:none; z-index:999;
@@ -118,7 +118,7 @@ button:disabled{opacity:.4; cursor:not-allowed;}
 .slider-row{display:flex; align-items:center; justify-content:space-between; font-size:12.5px; margin-bottom:2px;}
 .slider-row .v{font-weight:700;}
 input[type=range]{width:100%; accent-color:var(--navy); margin:2px 0 8px;}
-.sub-cols{display:grid; grid-template-columns:1fr 1fr; gap:8px; flex:1; min-height:0;}
+.sub-cols{display:grid; grid-template-columns:1fr 1fr; gap:8px; flex:1; min-height:0; max-height:46vh;}
 .tac > .panel:last-child{display:flex; flex-direction:column; min-height:0; flex:1;}
 .sub-list{display:flex; flex-direction:column; gap:5px; min-height:0; overflow-y:auto; margin-top:5px;}
 @media(max-width:820px){.sub-list{max-height:150px;} .sub-cols{flex:none;}}
@@ -278,6 +278,7 @@ input[type=range]{width:100%; accent-color:var(--navy); margin:2px 0 8px;}
 
 
 
+
 "use strict";
 /* ================= 데이터 (실제 2026 대표팀 명단 기반, 능력치는 자체 설정) =================
  slot: 선수의 실제 주 포지션 계열. GK / CB / FB(풀백·윙백) / DM / CM / AM / WG(측면공격) / ST
@@ -385,19 +386,34 @@ let subbedOut=[]; // 경기 중 교체로 빠진 선수(재출전 불가) — re
 const $=id=>document.getElementById(id);
 const show=id=>{document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));$(id).classList.add("active");window.scrollTo(0,0);};
 
-/* 오른쪽 목록 패널을 경기장 높이에 맞춰, 넘치는 항목은 목록 안에서만 스크롤되게 한다 */
+/* 오른쪽 목록 패널을 경기장 높이에 맞춘다 — 넘치는 항목은 목록 안에서만 스크롤 */
 function fitPanels(){
-  if(window.innerWidth<=820){ // 모바일은 세로로 쌓이므로 고정 해제
-    const r=$("lk-roster"); if(r) r.style.maxHeight="";
-    const t=document.querySelector("#scr-match .tac"); if(t) t.style.height="";
-    return;
-  }
+  const wide = window.innerWidth > 820;
+  // 락커룸 스쿼드 목록
   const lp=$("lk-pitch"), lr=$("lk-roster");
-  if(lp&&lr){ const h=lp.getBoundingClientRect().height; if(h>80) lr.style.maxHeight=Math.round(h)+"px"; }
-  const mp=$("m-pitch"), tac=document.querySelector("#scr-match .tac");
-  if(mp&&tac&&mp.parentElement){ const h=mp.parentElement.getBoundingClientRect().height; if(h>80) tac.style.height=Math.round(h)+"px"; }
+  if(lp&&lr){
+    const h=lp.getBoundingClientRect().height;
+    lr.style.maxHeight = (wide && h>80) ? Math.round(h)+"px" : "";
+  }
+  // 매치 화면 오른쪽 전술 컬럼 (경기장+모멘텀 높이에 맞춤)
+  const mp=$("m-pitch");
+  const tac=document.querySelector("#scr-match .tac");
+  const cols=document.querySelector("#scr-match .sub-cols");
+  if(mp&&tac&&mp.parentElement){
+    const h=mp.parentElement.getBoundingClientRect().height;
+    const on = wide && h>80;
+    tac.style.height = on ? Math.round(h)+"px" : "";
+    if(cols) cols.style.maxHeight = on ? "none" : "";
+  }
 }
 window.addEventListener("resize",fitPanels);
+window.addEventListener("load",fitPanels);
+/* 경기장 크기가 바뀔 때마다 자동으로 다시 맞춘다 (초기 렌더 타이밍 문제 방지) */
+function watchPitches(){
+  if(typeof ResizeObserver==="undefined") return;
+  const ro=new ResizeObserver(()=>fitPanels());
+  ["lk-pitch","m-pitch"].forEach(id=>{ const el=$(id); if(el) ro.observe(el); });
+}
 const rnd=(a,b)=>a+Math.random()*(b-a);
 const pick=arr=>arr[Math.floor(Math.random()*arr.length)];
 let toastT=null;
@@ -1035,7 +1051,8 @@ function init(){
   $("btn-retry").onclick=()=>{lockerSel=null;openLocker();};
   $("btn-home").onclick=()=>{clearInterval(timer);show("scr-intro");};
 }
-document.addEventListener("DOMContentLoaded",init);
+document.addEventListener("DOMContentLoaded",()=>{init();watchPitches();fitPanels();});
+
 
 
 
