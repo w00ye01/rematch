@@ -366,6 +366,7 @@ let scen=null, formation="4-3-3", starters=[], bench=[], positions=[];
 let sim=null; // {min,score,mom,shots,onT,oppShots,subsLeft,possAcc,ticks,addedTime,over}
 let timer=null, speed=1, paused=false;
 let lockerSel=null, subOut=null, subIn=null;
+let subbedOut=[]; // 경기 중 교체로 빠진 선수(재출전 불가) — reflow가 다시 넣지 못하게 격리
 
 /* ================= 유틸 ================= */
 const $=id=>document.getElementById(id);
@@ -701,6 +702,8 @@ function rosterClick(p){
   renderRoster(); renderPitch($("lk-pitch"),true);
 }
 function openLocker(){
+  // 이전 경기에서 교체 아웃됐던 선수를 벤치로 복귀 (재도전 대비)
+  if(subbedOut.length){ bench.push(...subbedOut); subbedOut=[]; }
   $("lk-title").textContent=`락커룸 — vs ${scen.opp}`;
   $("lk-sub").textContent=scen.startMin>0
     ? `하프타임 · 현재 스코어 ${scen.score[0]} : ${scen.score[1]} · ${scen.title}`
@@ -864,6 +867,8 @@ function render(){
 
 /* ================= 매치 화면 제어 ================= */
 function startMatch(){
+  // 이전 경기에서 교체 아웃됐던 선수를 벤치로 복귀시키고 격리 목록 비움
+  if(subbedOut.length){ bench.push(...subbedOut); subbedOut=[]; }
   starters.forEach(p=>{p.sta=p.maxSta;p.warned=false;});
   bench.forEach(p=>{p.sta=p.maxSta;p.warned=false;});
   sim={min:scen.startMin, score:[...scen.score], mom:scen.score[0]<scen.score[1]?42:50,
@@ -983,8 +988,10 @@ function init(){
   $("btn-sub").onclick=()=>{
     if(!(subOut&&subIn&&sim.subsLeft>0))return;
     const i=starters.indexOf(subOut);
+    const bi=bench.indexOf(subIn);
     starters[i]=subIn;
-    bench[bench.indexOf(subIn)]=subOut;
+    bench.splice(bi,1);        // 투입 선수는 벤치에서 제거
+    subbedOut.push(subOut);    // 아웃된 선수는 격리(재출전 불가) — 벤치로 돌려보내지 않음
     sim.subsLeft--;
     $("v-subs").textContent=`${sim.subsLeft}회 남음`;
     feed(sim.min,`교체: ${subOut.name} OUT → ${subIn.name} IN`,"coach");
