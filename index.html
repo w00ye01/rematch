@@ -116,7 +116,11 @@ button:disabled{opacity:.4; cursor:not-allowed;}
 .slider-row{display:flex; align-items:center; justify-content:space-between; font-size:12.5px; margin-bottom:2px;}
 .slider-row .v{font-weight:700;}
 input[type=range]{width:100%; accent-color:var(--navy); margin:2px 0 8px;}
-.sub-list{display:flex; flex-direction:column; gap:6px; max-height:180px; overflow-y:auto; margin-top:6px;}
+.sub-cols{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+.sub-list{display:flex; flex-direction:column; gap:5px; max-height:118px; overflow-y:auto; margin-top:5px;}
+.sub-list .p-row{padding:6px 8px; font-size:12.5px; gap:6px;}
+.sub-list .p-row .pos{width:26px; font-size:10px;}
+.sub-list .p-row .st{font-size:10.5px;}
 .feed{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:10px 14px; margin-top:14px;}
 .feed h3{font-size:12px; color:var(--sub); font-weight:600; margin-bottom:6px;}
 .feed-list{display:flex; flex-direction:column; gap:5px; max-height:220px; overflow-y:auto;}
@@ -217,12 +221,12 @@ input[type=range]{width:100%; accent-color:var(--navy); margin:2px 0 8px;}
         <div class="bar"><div class="k" id="mom-k" style="width:50%"></div><div class="o"></div></div>
         <span class="val" id="mom-v">50%</span>
       </div>
-      <div class="feed" style="margin-top:10px;">
-        <h3>실시간 중계</h3>
-        <div class="feed-list" id="feed" style="max-height:72px;"></div>
-      </div>
     </div>
     <div class="tac">
+      <div class="feed" style="margin-top:0;">
+        <h3>실시간 중계</h3>
+        <div class="feed-list" id="feed" style="max-height:84px;"></div>
+      </div>
       <div class="panel">
         <h3>포메이션</h3>
         <div class="form-btns" id="m-formations" style="margin-bottom:0;"></div>
@@ -236,8 +240,10 @@ input[type=range]{width:100%; accent-color:var(--navy); margin:2px 0 8px;}
       <div class="panel">
         <div class="slider-row"><span>교체</span><span class="v" id="v-subs">3회 남음</span></div>
         <div class="hint" style="margin-top:2px;">나가는 선수 → 들어올 선수 순서로 선택</div>
-        <div class="sub-list" id="m-out"></div>
-        <div class="sub-list" id="m-in"></div>
+        <div class="sub-cols">
+          <div class="sub-list" id="m-out"></div>
+          <div class="sub-list" id="m-in"></div>
+        </div>
         <button style="width:100%; margin-top:8px;" id="btn-sub" disabled>교체 실행</button>
       </div>
     </div>
