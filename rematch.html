@@ -265,6 +265,7 @@ input[type=range]{width:100%; accent-color:var(--navy); margin:2px 0 8px;}
 
 <script>
 
+
 "use strict";
 /* ================= 데이터 (실제 2026 대표팀 명단 기반, 능력치는 자체 설정) =================
  slot: 선수의 실제 주 포지션 계열. GK / CB / FB(풀백·윙백) / DM / CM / AM / WG(측면공격) / ST
@@ -570,10 +571,17 @@ function enableDrag(el){
     if(chip) chip.textContent=roleAt(x,y,p.slot==="GK");
   });
   const doSwap=(i,j)=>{
-    [starters[i],starters[j]]=[starters[j],starters[i]];
-    [positions[i],positions[j]]=[positions[j],positions[i]];
-    toast(`${starters[j].name} ↔ ${starters[i].name} 위치 교체`);
-    if(isMatch&&sim&&!sim.over) feed(sim.min,`감독 지시: ${starters[j].name} ↔ ${starters[i].name} 위치 교체.`,"coach");
+    // 골키퍼는 필드 플레이어와 자리를 바꿀 수 없음
+    if((starters[i].slot==="GK")!==(starters[j].slot==="GK")){
+      toast("골키퍼는 다른 포지션과 자리를 바꿀 수 없습니다");
+      return false;
+    }
+    const a=starters[i], b=starters[j];
+    // 선수만 교환한다 (위치 배열은 그대로 둬야 실제로 자리가 바뀐다)
+    starters[i]=b; starters[j]=a;
+    toast(`${a.name} ↔ ${b.name} 위치 교체`);
+    if(isMatch&&sim&&!sim.over) feed(sim.min,`감독 지시: ${a.name} ↔ ${b.name} 위치 교체.`,"coach");
+    return true;
   };
   const endDrag=e=>{
     if(!drag) return;
@@ -688,7 +696,12 @@ function rosterClick(p){
   else if(lockerSel===p){ lockerSel=null; }
   else{
     const a=starters.indexOf(lockerSel), b=starters.indexOf(p);
-    if(a>=0&&b>=0){[starters[a],starters[b]]=[starters[b],starters[a]]; [positions[a],positions[b]]=[positions[b],positions[a]];}
+    if(a>=0&&b>=0){
+      if((starters[a].slot==="GK")!==(starters[b].slot==="GK")){toast("골키퍼는 다른 포지션과 자리를 바꿀 수 없습니다");lockerSel=null;renderRoster();return;}
+      const pa=starters[a], pb=starters[b];
+      starters[a]=pb; starters[b]=pa; // 선수만 교환 (위치는 유지)
+      toast(`${pa.name} ↔ ${pb.name} 위치 교체`);
+    }
     else if(a>=0&&b<0){ if((p.slot==="GK")!==(lockerSel.slot==="GK")){toast("골키퍼 자리에는 골키퍼만 배치할 수 있습니다");lockerSel=null;renderRoster();return;}
       starters[a]=p; bench[bench.indexOf(p)]=lockerSel; toast(`${lockerSel.name} → ${p.name} 선발 교체`);}
     else if(a<0&&b>=0){ if((lockerSel.slot==="GK")!==(p.slot==="GK")){toast("골키퍼 자리에는 골키퍼만 배치할 수 있습니다");lockerSel=null;renderRoster();return;}
@@ -1000,6 +1013,7 @@ function init(){
   $("btn-home").onclick=()=>{clearInterval(timer);show("scr-intro");};
 }
 document.addEventListener("DOMContentLoaded",init);
+
 
 
 </script>
