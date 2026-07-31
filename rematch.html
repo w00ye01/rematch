@@ -185,7 +185,7 @@ input[type=range]{width:100%; accent-color:var(--navy); margin:2px 0 8px;}
       <h3>포메이션</h3>
       <div class="form-btns" id="lk-formations"></div>
       <div class="pitch-wrap" id="lk-pitch"></div>
-      <p class="hint">선수를 드래그해서 서로 위치를 바꾸거나, 오른쪽 벤치 선수를 눌러 교체 투입할 수 있습니다.</p>
+      <p class="hint">선수를 드래그하면 위치를 옮길 수 있고, 두 선수를 차례로 클릭하면 자리가 바뀝니다. 오른쪽 벤치 선수를 눌러 교체 투입할 수도 있습니다.</p>
     </div>
     <div class="panel">
       <h3>스쿼드 — 벤치를 눌러 선발과 교체</h3>
@@ -588,18 +588,12 @@ function enableDrag(el){
     const x=Math.min(96,Math.max(4,(e.clientX-r.left)/r.width*100));
     const y=Math.min(96,Math.max(4,(e.clientY-r.top)/r.height*100));
     const p=starters[drag.idx];
-    // 놓은 지점에서 가장 가까운 다른 선수 찾기
-    let best=-1,bd=1e9;
-    positions.forEach((c,k)=>{ if(k===drag.idx)return; const dd=(c.x-x)**2+(c.y-y)**2; if(dd<bd){bd=dd;best=k;} });
     if(e.type==="pointerup"){
-      // 가까운 선수 위에 놓으면(반경 넉넉히) 자리 교환, 아니면 그 지점에 자유 배치
-      if(best>=0 && bd<130){
-        doSwap(best,drag.idx);
-      } else if(p.slot==="GK" && y<55){
-        toast("골키퍼는 너무 전진할 수 없습니다"); // GK 과전진 방지
-        // 위치 되돌림 (자유배치 안 함)
+      // 드래그 = 위치 이동만 (자리 교환은 클릭 2번으로). GK 과전진만 막음
+      if(p.slot==="GK" && y<55){
+        toast("골키퍼는 너무 전진할 수 없습니다");
       } else {
-        positions[drag.idx]={x,y}; // 자유 배치
+        positions[drag.idx]={x,y};
       }
     }
     drag.dot.classList.remove("dragging");
