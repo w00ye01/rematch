@@ -266,6 +266,7 @@ input[type=range]{width:100%; accent-color:var(--navy); margin:2px 0 8px;}
 <script>
 
 
+
 "use strict";
 /* ================= 데이터 (실제 2026 대표팀 명단 기반, 능력치는 자체 설정) =================
  slot: 선수의 실제 주 포지션 계열. GK / CB / FB(풀백·윙백) / DM / CM / AM / WG(측면공격) / ST
@@ -332,7 +333,7 @@ function roleAt(x,y,isGK){
 const SCENARIOS = [
   { id:"rsa", opp:"남아공", oppForm:"5-4-1", oppAtk:76, oppDef:82, startMin:60, score:[0,1],
     tickMs:2200, form:"3-4-2-1",
-    lineup:["김승규","이한범","김민재","이기혁","이태석","황인범","백승호","설영우","황희찬","이강인","오현규"],
+    lineup:["김승규","이기혁","김민재","이한범","이태석","황인범","백승호","설영우","황희찬","이강인","오현규"],
     title:"후반 18분, 마세코에게 실점한 직후", desc:"2026.6.25 몬테레이. 조별리그 최종전 — 비기기만 해도 조 2위로 32강입니다. 실점 직후, 남은 30분을 당신이 지휘하세요. 동점골 하나면 역사가 바뀝니다.",
     meta:["난이도 ★★★","실제 최종전","실제 결과: 0-1 패배 · 탈락"],
     actual:{sc:"0 : 1", rs:"패배 · 조 3위 탈락"},
@@ -347,7 +348,7 @@ const SCENARIOS = [
   },
   { id:"mex", opp:"멕시코", oppForm:"4-3-3", oppAtk:86, oppDef:86, startMin:0, score:[0,0],
     tickMs:1400, form:"3-4-2-1",
-    lineup:["김승규","이한범","김민재","이기혁","설영우","황인범","백승호","이태석","이재성","이강인","오현규"],
+    lineup:["김승규","이기혁","김민재","이한범","설영우","백승호","황인범","김문환","이재성","이강인","손흥민"],
     title:"과달라하라의 함성을 잠재워라", desc:"2026.6.19 과달라하라. 홈팬 앞의 개최국 멕시코와의 2차전 — 이기면 조 1위. 실제 경기는 수비 실수 한 번에 무너진 0-1 패배였습니다. 90분 전체를 다시 설계하세요.",
     meta:["난이도 ★★★★","풀매치 90분","실제 결과: 0-1 패배"],
     actual:{sc:"0 : 1", rs:"패배 · 조 2위로 하락"},
@@ -455,60 +456,55 @@ function roleLineGroup(r){
   if(/^(LW|RW|ST|CF)$/.test(r)) return "ATT";
   return "MID"; // LM RM CM DM AM LAM RAM CAM CDM
 }
-function reflow(){ // 포메이션 변경 시 각 자리를 같은 라인 선수로 채우되, 부족/잉여는 벤치와 교환
+function reflow(){ // 포메이션 변경: 선발 11명은 그대로 두고 자리만 재배치 (벤치와 교환하지 않음)
   const roles=FORMATIONS[formation].roles;
-  const roleGroups=roles.map(roleLineGroup);
-  // 새 포메이션이 라인별로 몇 명 필요한지
-  const need={GK:0,DEF:0,MID:0,ATT:0};
-  roleGroups.forEach(g=>need[g]++);
-  // 현재 선발을 라인별로 분류
-  const have={GK:[],DEF:[],MID:[],ATT:[]};
-  starters.forEach(p=>have[SLOT_LINE[p.slot]||"MID"].push(p));
-  // 라인별로 인원 맞추기: 부족하면 벤치에서 같은 라인 선수 데려오고, 넘치면 벤치로 내림
-  ["GK","DEF","MID","ATT"].forEach(line=>{
-    // 넘치는 선수는 벤치로 (능력치 낮은 순으로 제외)
-    while(have[line].length > need[line]){
-      have[line].sort((a,b)=>(b.atk+b.def)-(a.atk+a.def));
-      const out=have[line].pop(); // 가장 약한 선수 제외
-      bench.push(out);
+  // 원래 시나리오 대형으로 돌아왔고 선발이 그대로면 실제 라인업 순서를 정확히 복원
+  if(scen && scen.lineup && formation===scen.form){
+    const names=starters.map(p=>p.name);
+    if(scen.lineup.every(n=>names.includes(n)) && names.length===scen.lineup.length){
+      starters=scen.lineup.map(n=>starters.find(p=>p.name===n));
+      syncPositionsToFormation();
+      return;
     }
-    // 부족하면 벤치에서 같은 라인 선수 데려오기 (능력치 높은 순)
-    while(have[line].length < need[line]){
-      const cand=bench.filter(b=>(SLOT_LINE[b.slot]||"MID")===line)
-                       .sort((a,b)=>(b.atk+b.def)-(a.atk+a.def))[0];
-      if(cand){ bench.splice(bench.indexOf(cand),1); have[line].push(cand); }
-      else break; // 벤치에도 없으면 포기 (인접 라인 폴백은 아래에서)
-    }
-  });
-  // 그래도 부족한 라인이 있으면 인접 라인에서 채움 (드문 경우)
-  const pull=(line)=>{
-    const alt = line==="DEF"?["MID","ATT"] : line==="ATT"?["MID","DEF"] : ["ATT","DEF"];
-    for(const a of alt){ if(have[a].length>need[a]){ return have[a].pop(); } }
-    // 벤치 아무나
-    return bench.length?bench.shift():null;
+  }
+  // (역할, 선수) 적합도 점수 — 높을수록 그 자리에 어울림
+  const LINE_ORDER={DEF:0,MID:1,ATT:2};
+  const fit=(role,p)=>{
+    if(role==="GK") return p.slot==="GK" ? 1000 : -1000;
+    if(p.slot==="GK") return -1000;              // 골키퍼는 필드 자리에 배치하지 않음
+    const wants=ROLE_SLOTS[role]||[];
+    const idx=wants.indexOf(p.slot);
+    let s = idx>=0 ? 60-idx*10 : 0;              // 그 역할이 원하는 포지션일수록 높은 점수
+    const rg=roleLineGroup(role), pg=SLOT_LINE[p.slot]||"MID";
+    if(rg===pg) s+=40;                            // 같은 라인이면 큰 보너스
+    else s-= (Math.abs(LINE_ORDER[rg]-LINE_ORDER[pg])===1 ? 30 : 200); // 수비수가 최전방에 서는 건 강하게 억제
+    return s;
   };
-  ["DEF","MID","ATT"].forEach(line=>{
-    while(have[line].length < need[line]){ const p=pull(line); if(p)have[line].push(p); else break; }
+  // 결정적 전역 배정: 모든 (자리, 선수) 조합 중 가장 잘 맞는 쌍부터 차례로 확정한다
+  // → 남는 선수가 최대한 덜 어색한 자리로 가고, 같은 11명이면 항상 동일한 결과가 나온다
+  const pool=starters.slice().sort((a,b)=>SQUAD.indexOf(a)-SQUAD.indexOf(b));
+  const pairs=[];
+  roles.forEach((r,ri)=>pool.forEach((p,pi)=>pairs.push({ri,pi,s:fit(r,p)})));
+  pairs.sort((x,y)=> y.s-x.s || x.ri-y.ri || x.pi-y.pi); // 점수 내림차순, 동점은 고정 순서
+  const out=new Array(roles.length);
+  const roleTaken=new Set(), playerTaken=new Set();
+  pairs.forEach(({ri,pi})=>{
+    if(roleTaken.has(ri)||playerTaken.has(pi)) return;
+    out[ri]=pool[pi]; roleTaken.add(ri); playerTaken.add(pi);
   });
-  // 각 자리에 해당 라인 선수를 배정하고, 라인 내에서 slot 세부(윙백/센터백 등) 정렬
-  const cursor={GK:0,DEF:0,MID:0,ATT:0};
-  starters=roles.map((r,i)=>{
-    const g=roleGroups[i];
-    return have[g][cursor[g]++];
-  });
-  // 라인 내 세부 위치 정렬: 각 자리의 이상적 slot과 선수 slot 매칭
-  const byGroup={DEF:[],MID:[],ATT:[]};
-  roles.forEach((r,i)=>{ const g=roleGroups[i]; if(byGroup[g]) byGroup[g].push(i); });
-  Object.entries(byGroup).forEach(([g,idxs])=>{
-    const players=idxs.map(i=>starters[i]).filter(Boolean);
-    const wantSlots=idxs.map(i=>(ROLE_SLOTS[roles[i]]||[])[0]);
-    const used=new Array(players.length).fill(false);
-    idxs.forEach((idx,k)=>{
-      let pick=players.findIndex((p,j)=>!used[j] && p && p.slot===wantSlots[k]);
-      if(pick<0) pick=players.findIndex((p,j)=>!used[j]);
-      if(pick>=0){ used[pick]=true; starters[idx]=players[pick]; }
-    });
-  });
+  // 개선 패스: 두 자리를 맞바꿔서 전체 적합도가 올라가면 교환 (남는 선수가 덜 어색한 자리로 감)
+  let improved=true, guard=0;
+  while(improved && guard++<50){
+    improved=false;
+    for(let i=0;i<roles.length;i++){
+      for(let j=i+1;j<roles.length;j++){
+        const cur=fit(roles[i],out[i])+fit(roles[j],out[j]);
+        const swp=fit(roles[i],out[j])+fit(roles[j],out[i]);
+        if(swp>cur){ const t=out[i]; out[i]=out[j]; out[j]=t; improved=true; }
+      }
+    }
+  }
+  starters=out;
   syncPositionsToFormation();
 }
 
@@ -1013,6 +1009,7 @@ function init(){
   $("btn-home").onclick=()=>{clearInterval(timer);show("scr-intro");};
 }
 document.addEventListener("DOMContentLoaded",init);
+
 
 
 
